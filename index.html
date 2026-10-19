@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo V2.0</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 40px 16px; font-family: system-ui, "PingFang SC", sans-serif; background: #f5f7fb; display: flex; justify-content: center; }
+    .todo-app { width: 100%; max-width: 480px; padding: 24px; background: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+    h1 { margin: 0 0 16px; font-size: 20px; color: #1f2937; }
+    .input-row { display: flex; gap: 8px; }
+    #todo-input { flex: 1; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; outline: none; }
+    #todo-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+    #add-btn { padding: 10px 16px; border: none; border-radius: 8px; background: #3b82f6; color: #fff; font-size: 15px; cursor: pointer; }
+    #message { min-height: 20px; margin: 8px 0 0; font-size: 13px; color: #dc2626; }
+    .filter-row { display: flex; gap: 6px; margin-top: 12px; }
+    .filter-row button { padding: 6px 12px; border: 1px solid #d1d5db; border-radius: 999px; background: #fff; cursor: pointer; font-size: 13px; }
+    .filter-row button.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+    #todo-list { padding: 0; margin: 16px 0 0; list-style: none; }
+    #todo-list li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid #f3f4f6; }
+    #todo-list li.completed .todo-text { text-decoration: line-through; color: #9ca3af; }
+    .todo-text { flex: 1; word-break: break-word; }
+    .delete-btn { border: none; background: transparent; color: #dc2626; cursor: pointer; font-size: 13px; }
+    .empty-state { padding: 16px 0; margin: 0; color: #9ca3af; text-align: center; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="todo-app">
+    <h1>Todo V2.0</h1>
+    <div class="input-row">
+      <input id="todo-input" type="text" maxlength="100" placeholder="请输入待办事项" aria-label="待办事项">
+      <button id="add-btn" type="button">添加</button>
+    </div>
+    <p id="message" role="status" aria-live="polite"></p>
+    <div class="filter-row">
+      <button type="button" data-filter="all" class="active">全部</button>
+      <button type="button" data-filter="active">未完成</button>
+      <button type="button" data-filter="completed">已完成</button>
+    </div>
+    <ul id="todo-list"></ul>
+    <p id="empty-state" class="empty-state">暂无待办事项</p>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    const MAX_LENGTH = 100;
+    const STORAGE_KEY = 'todo-app-v2';
+
+    const inputEl      = document.getElementById('todo-input');
+    const addBtn       = document.getElementById('add-btn');
+    const listEl       = document.getElementById('todo-list');
+    const messageEl    = document.getElementById('message');
+    const emptyStateEl = document.getElementById('empty-state');
+    const filterBtns   = document.querySelectorAll('[data-filter]');
+
+    const required = { 'todo-input': inputEl, 'add-btn': addBtn, 'todo-list': listEl, 'message': messageEl, 'empty-state': emptyStateEl };
+    for (const [id, el] of Object.entries(required)) {
+      if (!el) { console.error('[Todo] 缺少必需元素:', id); return; }
+    }
+
+    // ===== 状态 =====
+    let todos = loadTodos();
+    let filter = 'all';
+
+    // ===== 持久化 =====
+    function saveTodos() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+      } catch (e) {
+        console.error('[Todo] 保存失败', e);
+      }
+    }
+
+    function loadTodos() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.error('[Todo] 读取失败', e);
+        return [];
+      }
+    }
+
+    // ===== 工具 =====
+    function showMessage(text) { messageEl.textContent = text; }
+
+    // ===== 渲染 =====
+    function render() {
+      listEl.textContent = '';
+
+      const visible = todos.filter(todo => {
+        if (filter === 'active') return !todo.completed;
+        if (filter === 'completed') return todo.completed;
+        return true;
+      });
+
+      visible.forEach(todo => {
+        const li = document.createElement('li');
+        li.className = 'todo-item' + (todo.completed ? ' completed' : '');
+        li.dataset.id = todo.id;
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = todo.completed;
+        checkbox.setAttribute('aria-label', '切换完成状态');
+
+        const span = document.createElement('span');
+        span.className = 'todo-text';
+        span.textContent = todo.text;
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'delete-btn';
+        delBtn.textContent = '删除';
+        delBtn.setAttribute('aria-label', '删除这条待办');
+
+        li.appendChild(checkbox);
+        li.appendChild(span);
+        li.appendChild(delBtn);
+        listEl.appendChild(li);
+      });
+
+      emptyStateEl.style.display = visible.length > 0 ? 'none' : 'block';
+      filterBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.filter === filter));
+    }
+
+    // ===== 三个操作：改数据 → 保存 → 重渲染 =====
+    function addTodo() {
+      const text = inputEl.value.trim();
+      if (!text) { showMessage('请输入内容后再添加'); inputEl.focus(); return; }
+      if (text.length > MAX_LENGTH) { showMessage('单条内容不能超过 ' + MAX_LENGTH + ' 字'); inputEl.focus(); return; }
+
+      todos = [...todos, { id: Date.now(), text, completed: false }];
+      saveTodos();
+      render();
+
+      inputEl.value = '';
+      showMessage('');
+      inputEl.focus();
+    }
+
+    function removeTodo(id) {
+      todos = todos.filter(todo => todo.id !== id);
+      saveTodos();
+      render();
+    }
+
+    function toggleTodo(id) {
+      todos = todos.map(todo =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      );
+      saveTodos();
+      render();
+    }
+
+    function clearCompleted() {
+      todos = todos.filter(todo => !todo.completed);
+      saveTodos();
+      render();
+    }
+
+    // ===== 事件 =====
+    addBtn.addEventListener('click', addTodo);
+    inputEl.addEventListener('keydown', e => {
+      if (e.isComposing || e.keyCode === 229) return;
+      if (e.key === 'Enter') addTodo();
+    });
+
+    listEl.addEventListener('click', e => {
+      const li = e.target.closest('li[data-id]');
+      if (!li) return;
+      const id = Number(li.dataset.id);
+      if (e.target.matches('input[type="checkbox"]')) toggleTodo(id);
+      else if (e.target.matches('.delete-btn')) removeTodo(id);
+    });
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filter = btn.dataset.filter;
+        render();
+      });
+    });
+
+    // ===== 初始化 =====
+    render();
+
+    // 挂到 window，方便控制台验证 clearCompleted
+    window.clearCompleted = clearCompleted;
+  })();
+  </script>
+</body>
+</html>
