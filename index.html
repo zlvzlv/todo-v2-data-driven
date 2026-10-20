@@ -22,6 +22,7 @@
     #todo-list li.completed .todo-text { text-decoration: line-through; color: #9ca3af; }
     .todo-text { flex: 1; word-break: break-word; }
     .delete-btn { border: none; background: transparent; color: #dc2626; cursor: pointer; font-size: 13px; }
+    .edit-btn { border: none; background: transparent; color: #3b82f6; cursor: pointer; font-size: 13px; }
     .empty-state { padding: 16px 0; margin: 0; color: #9ca3af; text-align: center; font-size: 14px; }
   </style>
 </head>
@@ -107,20 +108,29 @@
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.checked = todo.completed;
+        checkbox.dataset.action = 'toggle'; // 绑定 data-action
         checkbox.setAttribute('aria-label', '切换完成状态');
 
         const span = document.createElement('span');
         span.className = 'todo-text';
         span.textContent = todo.text;
 
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'edit-btn';
+        editBtn.textContent = '编辑';
+        editBtn.dataset.action = 'edit'; // 绑定 data-action
+
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.className = 'delete-btn';
         delBtn.textContent = '删除';
+        delBtn.dataset.action = 'delete'; // 绑定 data-action
         delBtn.setAttribute('aria-label', '删除这条待办');
 
         li.appendChild(checkbox);
         li.appendChild(span);
+        li.appendChild(editBtn);
         li.appendChild(delBtn);
         listEl.appendChild(li);
       });
@@ -129,7 +139,7 @@
       filterBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.filter === filter));
     }
 
-    // ===== 三个操作：改数据 → 保存 → 重渲染 =====
+    // ===== 三个操作 =====
     function addTodo() {
       const text = inputEl.value.trim();
       if (!text) { showMessage('请输入内容后再添加'); inputEl.focus(); return; }
@@ -164,21 +174,45 @@
       render();
     }
 
-    // ===== 事件 =====
+    // ===== 【补上的部分】：添加按钮和回车键绑定 =====
     addBtn.addEventListener('click', addTodo);
     inputEl.addEventListener('keydown', e => {
       if (e.isComposing || e.keyCode === 229) return;
       if (e.key === 'Enter') addTodo();
     });
 
-    listEl.addEventListener('click', e => {
+    // ===== 事件委托（完美版） =====
+    listEl.addEventListener('click', (e) => {
       const li = e.target.closest('li[data-id]');
-      if (!li) return;
+      if (!li || !listEl.contains(li)) return;
+      
       const id = Number(li.dataset.id);
-      if (e.target.matches('input[type="checkbox"]')) toggleTodo(id);
-      else if (e.target.matches('.delete-btn')) removeTodo(id);
+      const actionEl = e.target.closest('[data-action]');
+      if (!actionEl) return;
+
+      const action = actionEl.dataset.action;
+
+      if (action === 'toggle') {
+        toggleTodo(id);
+      } else if (action === 'delete') {
+        removeTodo(id);
+        return; // 阻断执行
+      } else if (action === 'edit') {
+        // 独立编写的编辑逻辑
+        const targetTodo = todos.find(t => t.id === id);
+        if (!targetTodo) return;
+        const newText = prompt('修改任务内容：', targetTodo.text);
+        if (newText !== null && newText.trim() !== '') {
+          todos = todos.map(todo => 
+            todo.id === id ? { ...todo, text: newText.trim() } : todo
+          );
+          saveTodos();
+          render();
+        }
+      }
     });
 
+    // ===== 过滤事件 =====
     filterBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         filter = btn.dataset.filter;
@@ -189,7 +223,7 @@
     // ===== 初始化 =====
     render();
 
-    // 挂到 window，方便控制台验证 clearCompleted
+    // 方便控制台调用
     window.clearCompleted = clearCompleted;
   })();
   </script>
