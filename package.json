@@ -1,0 +1,19 @@
+{
+  "name": "todo-v2-ts",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Todo V2.0 —— 把 W8 的 JS 版重构为 TypeScript，并补齐单元测试",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

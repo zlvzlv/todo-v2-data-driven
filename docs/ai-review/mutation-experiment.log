@@ -1,0 +1,99 @@
+
+> todo-v2-ts@1.0.0 test
+> vitest run src/todo.ai.test.ts src/todo.test.ts --reporter=verbose --color
+
+
+ RUN  v5.0.5 todo-ts
+
+ ✓ src/todo.ai.test.ts > AI 生成的测试（原稿） > addTodo 能新增一条任务 1ms
+ ✓ src/todo.ai.test.ts > AI 生成的测试（原稿） > addTodo 空内容不应该抛错 1ms
+ ✓ src/todo.ai.test.ts > AI 生成的测试（原稿） > addTodo 超长内容会被拦截 0ms
+ ✓ src/todo.ai.test.ts > AI 生成的测试（原稿） > toggleTodo 能把未完成变已完成 0ms
+ ✓ src/todo.ai.test.ts > AI 生成的测试（原稿） > toggleTodo 不会改变数组长度 0ms
+ ✓ src/todo.ai.test.ts > AI 生成的测试（原稿） > toggleTodo 传不存在的 id 不抛错 0ms
+ ✓ src/todo.ai.test.ts > AI 生成的测试（原稿） > parseTodoId 能把字符串转成数字 0ms
+ ✓ src/todo.ai.test.ts > AI 生成的测试（原稿） > 任务数据可以被序列化 0ms
+ × src/todo.test.ts > addTodo —— 正常情况 > 新增任务时写入 trim 后的文本，completed 默认 false 7ms
+   → expected { id: 1, text: '  买牛奶  ', …(1) } to deeply equal { Object (id, text, ...) }
+ ✓ src/todo.test.ts > addTodo —— 正常情况 > 新任务追加在已有任务后面，不覆盖旧数据 0ms
+ ✓ src/todo.test.ts > addTodo —— 正常情况 > 不修改传入的原数组（纯函数） 0ms
+ ✓ src/todo.test.ts > addTodo —— 正常情况 > 文案相同但 id 不同时允许新增（业务允许重复文案） 0ms
+ ✓ src/todo.test.ts > addTodo —— 边界拦截 > 空字符串被拦截 0ms
+ × src/todo.test.ts > addTodo —— 边界拦截 > 只输入空格（trim 后为空）被拦截 1ms
+   → expected { ok: true, …(2) } to deeply equal { ok: false, reason: 'empty' }
+ ✓ src/todo.test.ts > addTodo —— 边界拦截 > 恰好 100 个字可以添加（上限本身是合法值） 0ms
+ ✓ src/todo.test.ts > addTodo —— 边界拦截 > 第 101 个字被拦截（越界上界） 0ms
+ ✓ src/todo.test.ts > addTodo —— 边界拦截 > id 已存在时被拦截，原有数据不变 0ms
+ ✓ src/todo.test.ts > addTodo —— 边界拦截 > id 不是正整数时被拦截 0ms
+ ✓ src/todo.test.ts > toggleTodo > 未完成 → 已完成 0ms
+ ✓ src/todo.test.ts > toggleTodo > 已完成 → 未完成 0ms
+ ✓ src/todo.test.ts > toggleTodo > 只翻转目标任务，其它任务对象引用不变 0ms
+ ✓ src/todo.test.ts > toggleTodo > 不修改传入的原数组（纯函数） 0ms
+ ✓ src/todo.test.ts > toggleTodo > id 不存在时原样返回，不抛错 0ms
+ ✓ src/todo.test.ts > toggleTodo > id 为 NaN 时不抛错且没有任何变化 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/todo.test.ts > addTodo —— 正常情况 > 新增任务时写入 trim 后的文本，completed 默认 false
+AssertionError: expected { id: 1, text: '  买牛奶  ', …(1) } to deeply equal { Object (id, text, ...) }
+
+- Expected
++ Received
+
+  {
+    "completed": false,
+    "id": 1,
+-   "text": "买牛奶",
++   "text": "  买牛奶  ",
+  }
+
+ ❯ src/todo.test.ts:17:29
+     15|     if (!result.ok) return;
+     16|     expect(result.todos).toHaveLength(1);
+     17|     expect(result.todos[0]).toEqual({ id: 1, text: '买牛奶', completed: f…
+       |                             ^
+     18|   });
+     19|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/todo.test.ts > addTodo —— 边界拦截 > 只输入空格（trim 后为空）被拦截
+AssertionError: expected { ok: true, …(2) } to deeply equal { ok: false, reason: 'empty' }
+
+- Expected
++ Received
+
+  {
+-   "ok": false,
+-   "reason": "empty",
++   "ok": true,
++   "todo": {
++     "completed": false,
++     "id": 1,
++     "text": "   ",
++   },
++   "todos": [
++     {
++       "completed": false,
++       "id": 1,
++       "text": "   ",
++     },
++   ],
+  }
+
+ ❯ src/todo.test.ts:49:35
+     47|
+     48|   it('只输入空格（trim 后为空）被拦截', () => {
+     49|     expect(addTodo([], '   ', 1)).toEqual({ ok: false, reason: 'empty'…
+       |                                   ^
+     50|   });
+     51|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 22 passed (24)
+   Start at  15:23:52
+   Duration  199ms (transform 43%, import 31%, tests 14%, worker 11%)
+
