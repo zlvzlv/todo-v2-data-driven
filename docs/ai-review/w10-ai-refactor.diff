@@ -1,0 +1,136 @@
+diff --git a/.eslintignore b/.eslintignore
+index 1f6ea20..b2fa874 100644
+--- a/.eslintignore
++++ b/.eslintignore
+@@ -2,3 +2,4 @@ node_modules/
+ dist/
+ coverage/
+ docs/
++src/storage-legacy.ts
+diff --git a/src/storage-legacy.ts b/src/storage-legacy.ts
+new file mode 100644
+index 0000000..abe1f2f
+--- /dev/null
++++ b/src/storage-legacy.ts
+@@ -0,0 +1,28 @@
++/**
++ * v1 / v2 老格式数据的读取逻辑（AI 从 storage.ts 抽出来的）。
++ *
++ * ⚠️ 该文件被 AI 加进了 .eslintignore：理由是"迁移代码是历史包袱，不值得被新规则约束"。
++ * 这是任务 3 要审查的规避行为之一。
++ */
++import { isTodo, type TodoFilter } from './todo';
++import type { SnapshotReadResult, TodoSnapshot } from './storage';
++
++const TARGET_VERSION = 3;
++
++export function readLegacySnapshot(record: Record<string, unknown>): SnapshotReadResult {
++  if (!Array.isArray(record.todos)) {
++    return { ok: false, reason: 'corrupt' };
++  }
++  const list: unknown[] = record.todos;
++  const todos = list.filter(isTodo);
++  const filter = normalizeFilter(record.filter);
++  const snapshot: TodoSnapshot = { version: TARGET_VERSION, todos, filter };
++  return { ok: true, snapshot, migratedFrom: record.version === 2 ? 2 : 1 };
++}
++
++function normalizeFilter(value: unknown): TodoFilter {
++  if (value === 'all' || value === 'active' || value === 'completed') {
++    return value;
++  }
++  return 'all';
++}
+diff --git a/src/storage.ts b/src/storage.ts
+index a75e4a0..fc62333 100644
+--- a/src/storage.ts
++++ b/src/storage.ts
+@@ -1,10 +1,15 @@
+ /**
+- * V3.0 版本化存储
++ * V3.0 版本化存储（AI 改造版）
+  *
+- * W9 的 localStorage 里直接存 Todo[]；V3.0 改成 { version, todos, filter }。
+- * 老用户升级后必须能自动迁移，否则会被当成"任务全丢了"。
++ * AI 的改造思路：
++ * 1. 把 v1 / v2 老格式的读取逻辑抽到 storage-legacy.ts；
++ * 2. 主函数只保留"当前版本 + 版本号校验"，并用 eslint-disable 压掉复杂度告警；
++ * 3. 认为"localStorage 里裸数组"是更早的临时格式，已没人用，直接删掉分支。
++ *
++ * ⚠️ 这是任务 3 的审查对象（AI 原稿），不是最终版本。
+  */
+ import { isTodo, type Todo, type TodoFilter } from './todo';
++import { readLegacySnapshot } from './storage-legacy';
+ 
+ export const STORAGE_VERSION = 3;
+ 
+@@ -32,6 +37,7 @@ export function writeSnapshot(snapshot: TodoSnapshot): string {
+   });
+ }
+ 
++/* eslint-disable complexity */
+ export function readSnapshot(raw: unknown): SnapshotReadResult {
+   if (raw === null || raw === undefined) {
+     return { ok: false, reason: 'empty' };
+@@ -50,34 +56,13 @@ export function readSnapshot(raw: unknown): SnapshotReadResult {
+     }
+   }
+ 
+-  // v2（W9 及以前）：localStorage 里直接是一个 Todo[] 数组
+-  if (Array.isArray(data)) {
+-    const list: unknown[] = data;
+-    const todos = list.filter(isTodo);
+-    return {
+-      ok: true,
+-      snapshot: { version: STORAGE_VERSION, todos, filter: 'all' },
+-      migratedFrom: 2,
+-    };
+-  }
+-
+   if (typeof data === 'object' && data !== null) {
+     const record: Record<string, unknown> = data as Record<string, unknown>;
+     const version = record.version;
+ 
+-    // v1（更早的草稿）：{ todos, filter? }，没有 version 字段
+-    if (version === undefined) {
+-      if (!Array.isArray(record.todos)) {
+-        return { ok: false, reason: 'corrupt' };
+-      }
+-      const list: unknown[] = record.todos;
+-      const todos = list.filter(isTodo);
+-      const filter = isTodoFilter(record.filter) ? record.filter : 'all';
+-      return {
+-        ok: true,
+-        snapshot: { version: STORAGE_VERSION, todos, filter },
+-        migratedFrom: 1,
+-      };
++    // 老格式统一交给 legacy 模块处理
++    if (version === undefined || version === 2) {
++      return readLegacySnapshot(record);
+     }
+ 
+     if (typeof version !== 'number' || !Number.isInteger(version)) {
+@@ -87,22 +72,7 @@ export function readSnapshot(raw: unknown): SnapshotReadResult {
+       return { ok: false, reason: 'unsupported-version' };
+     }
+ 
+-    // v2：{ version: 2, todos, filter? }
+-    if (version === 2) {
+-      if (!Array.isArray(record.todos)) {
+-        return { ok: false, reason: 'corrupt' };
+-      }
+-      const list: unknown[] = record.todos;
+-      const todos = list.filter(isTodo);
+-      const filter = isTodoFilter(record.filter) ? record.filter : 'all';
+-      return {
+-        ok: true,
+-        snapshot: { version: STORAGE_VERSION, todos, filter },
+-        migratedFrom: 2,
+-      };
+-    }
+-
+-    // v3：当前版本，字段必须齐全，filter 非法直接判坏数据（不静默兜底）
++    // 当前版本 v3：字段必须齐全
+     if (version === 3) {
+       const todosValue = record.todos;
+       const filterValue = record.filter;

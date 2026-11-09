@@ -1,0 +1,75 @@
+$ npx eslint src/ --ext .ts --max-warnings 0
+(无输出)
+
+$ npm test
+> todo-v3-ts@3.0.0 test
+> vitest run
+
+
+ RUN  v5.0.5 todo-ts
+
+ ✓ src/todo.ai.patched.test.ts (13 tests) 5ms
+ ✓ src/todo.test.ts (16 tests) 5ms
+ ❯ src/storage.test.ts (11 tests | 2 failed) 11ms
+   ✓ writeSnapshot (1)
+     ✓ 写出来的字符串带 version 与 filter，能被 JSON.parse 2ms
+   ✓ readSnapshot —— 空值与坏数据 (3)
+     ✓ null / undefined / 空串 都返回 empty 0ms
+     ✓ 坏 JSON 返回 corrupt，不抛错 0ms
+     ✓ 不认识的类型（数字）返回 corrupt 0ms
+   ❯ readSnapshot —— 老数据迁移 (4)
+     × v2（W9 纯数组）能迁移，filter 兜底为 all 5ms
+     ✓ v1（{ todos } 无 version）能迁移，filter 非法时兜底 all 0ms
+     ✓ v2 对象格式能迁移并保留 filter 0ms
+     × 迁移时过滤掉脏数据（缺字段 / id 类型不对） 0ms
+   ✓ readSnapshot —— v3 当前版本 (3)
+     ✓ 合法 v3 数据直接读取，不标记迁移 0ms
+     ✓ v3 的 filter 非法时判 corrupt（不静默兜底） 0ms
+     ✓ 版本号高于 3（未来版本）返回 unsupported-version 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/storage.test.ts > readSnapshot —— 老数据迁移 > v2（W9 纯数组）能迁移，filter 兜底为 all
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/storage.test.ts:42:23
+     40|     const raw = JSON.stringify([milk, report]);
+     41|     const result = readSnapshot(raw);
+     42|     expect(result.ok).toBe(true);
+       |                       ^
+     43|     if (!result.ok) return;
+     44|     expect(result.migratedFrom).toBe(2);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/storage.test.ts > readSnapshot —— 老数据迁移 > 迁移时过滤掉脏数据（缺字段 / id 类型不对）
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/storage.test.ts:76:23
+     74|     ]);
+     75|     const result = readSnapshot(raw);
+     76|     expect(result.ok).toBe(true);
+       |                       ^
+     77|     if (!result.ok) return;
+     78|     expect(result.snapshot.todos).toEqual([milk]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  2 failed | 38 passed (40)
+   Start at  21:31:48
+   Duration  216ms (import 43%, transform 28%, tests 15%, worker 13%)
+
