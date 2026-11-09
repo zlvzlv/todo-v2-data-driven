@@ -3,14 +3,7 @@
  * 相比原稿：删掉类型逃逸的强制转换、补上真实断言、按 9 维度补齐 parseTodoId 与 parseTodos 的边界。
  */
 import { describe, expect, it } from 'vitest';
-import {
-  MAX_TEXT_LENGTH,
-  addTodo,
-  parseTodoId,
-  parseTodos,
-  toggleTodo,
-  type Todo,
-} from './todo';
+import { MAX_TEXT_LENGTH, addTodo, parseTodoId, parseTodos, toggleTodo, type Todo } from './todo';
 
 const milk: Todo = { id: 1, text: '买牛奶', completed: false };
 
@@ -28,7 +21,10 @@ describe('修补 AI 测试 —— addTodo', () => {
   });
 
   it('第 101 个字被拦截（AI 漏掉的越界点）', () => {
-    expect(addTodo([], 'x'.repeat(MAX_TEXT_LENGTH + 1), 1)).toEqual({ ok: false, reason: 'too-long' });
+    expect(addTodo([], 'x'.repeat(MAX_TEXT_LENGTH + 1), 1)).toEqual({
+      ok: false,
+      reason: 'too-long',
+    });
   });
 
   it('传入的数组不会被修改（AI 原来只测了长度）', () => {

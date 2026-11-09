@@ -1,8 +1,8 @@
 /**
- * Todo V2.0 DOM 层
+ * Todo V3.0 DOM 层
  *
- * 只负责「读 DOM → 调数据层 → 写 DOM」，业务规则全部在 todo.ts 里。
- * 这里的 null 安全靠 requireElement 的类型守卫收窄，全程不使用 any。
+ * W9 的 DOM 层只关心「读 DOM → 调数据 → 写 DOM」；V3.0 把存储升级成了
+ * 版本化快照（storage.ts），这里负责：启动时迁移旧数据、每次变更后落盘。
  */
 
 import {
@@ -11,15 +11,17 @@ import {
   filterTodos,
   nextId,
   parseTodoId,
-  parseTodos,
   removeTodo,
   toggleTodo,
   updateTodo,
   type Todo,
   type TodoFilter,
 } from './todo';
+import { STORAGE_VERSION, readSnapshot, writeSnapshot, type TodoSnapshot } from './storage';
 
-const STORAGE_KEY = 'todo-app-v2';
+const STORAGE_KEY = 'todo-app-v3';
+/** W9 及以前的 key：存的是裸数组，升级时要迁移过来 */
+const LEGACY_STORAGE_KEY = 'todo-app-v2';
 
 type ElementGuard<T extends HTMLElement> = (el: HTMLElement) => el is T;
 
@@ -35,7 +37,8 @@ function requireElement<T extends HTMLElement>(id: string, guard: ElementGuard<T
 const isInput = (el: HTMLElement): el is HTMLInputElement => el instanceof HTMLInputElement;
 const isButton = (el: HTMLElement): el is HTMLButtonElement => el instanceof HTMLButtonElement;
 const isList = (el: HTMLElement): el is HTMLUListElement => el instanceof HTMLUListElement;
-const isParagraph = (el: HTMLElement): el is HTMLParagraphElement => el instanceof HTMLParagraphElement;
+const isParagraph = (el: HTMLElement): el is HTMLParagraphElement =>
+  el instanceof HTMLParagraphElement;
 
 const inputEl = requireElement('todo-input', isInput);
 const addBtn = requireElement('add-btn', isButton);
@@ -48,25 +51,44 @@ for (const el of document.querySelectorAll('[data-filter]')) {
   if (el instanceof HTMLButtonElement) filterButtons.push(el);
 }
 
-let todos: readonly Todo[] = loadTodos();
-let activeFilter: TodoFilter = 'all';
+interface StartupState {
+  readonly todos: readonly Todo[];
+  readonly filter: TodoFilter;
+}
 
-function saveTodos(): void {
+function readStorage(key: string): string | null {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    return localStorage.getItem(key);
+  } catch (error: unknown) {
+    console.error('[Todo] 读取存储失败', error);
+    return null;
+  }
+}
+
+function persist(snapshot: TodoSnapshot): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, writeSnapshot(snapshot));
   } catch (error: unknown) {
     console.error('[Todo] 保存失败', error);
   }
 }
 
-function loadTodos(): readonly Todo[] {
-  try {
-    return parseTodos(localStorage.getItem(STORAGE_KEY));
-  } catch (error: unknown) {
-    console.error('[Todo] 读取失败', error);
-    return [];
+/** 优先读 v3；读不到就回退去读 W9 的 v2 key，迁移成功后立刻写回新 key */
+function loadStartupState(): StartupState {
+  const raw = readStorage(STORAGE_KEY) ?? readStorage(LEGACY_STORAGE_KEY);
+  const result = readSnapshot(raw);
+  if (!result.ok) {
+    return { todos: [], filter: 'all' };
   }
+  if (result.migratedFrom !== null) {
+    persist(result.snapshot);
+  }
+  return { todos: result.snapshot.todos, filter: result.snapshot.filter };
 }
+
+const startup = loadStartupState();
+let todos: readonly Todo[] = startup.todos;
+let activeFilter: TodoFilter = startup.filter;
 
 function showMessage(text: string): void {
   messageEl.textContent = text;
@@ -97,7 +119,12 @@ function createRow(todo: Todo): HTMLLIElement {
   span.className = 'todo-text';
   span.textContent = todo.text; // 用 textContent 而不是 innerHTML，天然防 XSS
 
-  li.append(checkbox, span, createActionButton('编辑', 'edit'), createActionButton('删除', 'delete'));
+  li.append(
+    checkbox,
+    span,
+    createActionButton('编辑', 'edit'),
+    createActionButton('删除', 'delete'),
+  );
   return li;
 }
 
@@ -115,14 +142,18 @@ function render(): void {
 
 function commit(nextTodos: readonly Todo[]): void {
   todos = nextTodos;
-  saveTodos();
+  persist({ version: STORAGE_VERSION, todos, filter: activeFilter });
   render();
 }
 
 function handleAdd(): void {
   const result = addTodo(todos, inputEl.value, nextId(todos));
   if (!result.ok) {
-    showMessage(result.reason === 'too-long' ? `单条内容不能超过 ${MAX_TEXT_LENGTH} 字` : '请输入内容后再添加');
+    showMessage(
+      result.reason === 'too-long'
+        ? `单条内容不能超过 ${MAX_TEXT_LENGTH} 字`
+        : '请输入内容后再添加',
+    );
     inputEl.focus();
     return;
   }
@@ -147,7 +178,9 @@ function handleEdit(id: number): void {
   if (newText === null) return;
   const result = updateTodo(todos, id, newText);
   if (!result.ok) {
-    showMessage(result.reason === 'too-long' ? `单条内容不能超过 ${MAX_TEXT_LENGTH} 字` : '内容不能为空');
+    showMessage(
+      result.reason === 'too-long' ? `单条内容不能超过 ${MAX_TEXT_LENGTH} 字` : '内容不能为空',
+    );
     return;
   }
   commit(result.todos);
@@ -183,6 +216,7 @@ function handleFilterClick(event: MouseEvent): void {
   const { filter } = event.currentTarget.dataset;
   if (filter !== 'all' && filter !== 'active' && filter !== 'completed') return;
   activeFilter = filter;
+  persist({ version: STORAGE_VERSION, todos, filter: activeFilter });
   render();
 }
 

@@ -58,7 +58,10 @@ describe('addTodo —— 边界拦截', () => {
   });
 
   it('第 101 个字被拦截（越界上界）', () => {
-    expect(addTodo([], '待'.repeat(MAX_TEXT_LENGTH + 1), 1)).toEqual({ ok: false, reason: 'too-long' });
+    expect(addTodo([], '待'.repeat(MAX_TEXT_LENGTH + 1), 1)).toEqual({
+      ok: false,
+      reason: 'too-long',
+    });
   });
 
   it('id 已存在时被拦截，原有数据不变', () => {
