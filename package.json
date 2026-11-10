@@ -1,28 +1,35 @@
 {
-  "name": "todo-v3-ts",
+  "name": "todo-v4-react",
   "private": true,
-  "version": "3.0.0",
+  "version": "4.0.0",
   "type": "module",
-  "description": "Todo V3.0 —— 版本化存储 + Vite 工程化 + ESLint/Prettier + 单元测试",
+  "description": "Todo V4.0 —— 从原生 DOM 迁移到 React：组件拆分 + State 驱动 + 双轨验证",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "format": "prettier --write \"src/**/*.{ts,css}\" \"*.{json,md}\" \"docs/**/*.md\"",
-    "format:check": "prettier --check \"src/**/*.{ts,css}\" \"*.{json,md}\" \"docs/**/*.md\""
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"*.{json,md}\" \"docs/**/*.md\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"*.{json,md}\" \"docs/**/*.md\""
   },
   "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@typescript-eslint/eslint-plugin": "^8.72.1",
     "@typescript-eslint/parser": "^8.72.1",
+    "@vitejs/plugin-react": "^6.3.0",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.10",
     "typescript": "~5.9.3",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   }
 }

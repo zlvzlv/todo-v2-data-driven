@@ -1,0 +1,17 @@
+通过 Chrome DevTools Protocol 捕获的页面控制台输出（真实运行）：
+[vite] connecting...
+%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[TodoApp] todos = [] filter = all
+[TodoApp] todos = [] filter = all
+[vite] connected.
+Failed to load resource: the server responded with a status of 404 (Not Found)
+[TodoApp] todos = [{"id":1,"text":"买牛奶","completed":false}] filter = all
+[TodoApp] todos = [{"id":1,"text":"买牛奶","completed":false},{"id":2,"text":"写周报","completed":false}] filter = all
+[TodoApp] todos = [{"id":1,"text":"买牛奶","completed":false},{"id":2,"text":"写周报","completed":false},{"id":3,"text":"整理 W11 报告","completed":false}] filter = all
+[TodoApp] todos = [{"id":1,"text":"买牛奶","completed":true},{"id":2,"text":"写周报","completed":false},{"id":3,"text":"整理 W11 报告","completed":false}] filter = all
+[TodoApp] todos = [{"id":1,"text":"买牛奶","completed":true},{"id":2,"text":"写周报","completed":false}] filter = all
+
+UI 操作结果：
+- 连续添加 3 条后列表项数 = 3
+- 点击第 1 条复选框后，带 completed 样式的文本 = 买牛奶
+- 删除第 3 条后列表项数 = 2
