@@ -1,0 +1,16 @@
+浏览器：真实 Edge（puppeteer-core 驱动）
+初始顺序：买牛奶 | 写周报 | 整理实验报告
+搜索「牛奶」后统计：当前视图 1 条 / 总计 3 条
+搜索「牛奶」后可见：买牛奶
+拖拽（第3条→第1位）后顺序：整理实验报告 | 买牛奶 | 写周报
+刷新后顺序：整理实验报告 | 买牛奶 | 写周报
+localStorage 快照中顺序：{"version":3,"todos":[{"id":3,"text":"整理实验报告","completed":false},{"id":1,"text":"买牛奶","completed":false},{"id":2,"text":"写周报","completed":false}],"filter":"all"}
+
+控制台输出：
+[vite] connecting...
+[vite] connected.
+Failed to load resource: the server responded with a status of 404 (Not Found)
+[vite] connecting...
+[vite] connected.
+[vite] connecting...
+[vite] connected.

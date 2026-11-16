@@ -3,17 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Todo V2.0 · TypeScript</title>
+  <title>Todo V3.0 · 搜索与拖拽</title>
   <link rel="stylesheet" href="/src/styles.css" />
 </head>
 <body>
   <div class="todo-app">
-    <h1>Todo V2.0</h1>
+    <h1>Todo V3.0</h1>
     <div class="input-row">
       <input id="todo-input" type="text" maxlength="100" placeholder="请输入待办事项" aria-label="待办事项" />
       <button id="add-btn" type="button">添加</button>
     </div>
     <p id="message" role="status" aria-live="polite"></p>
+    <div class="search-row">
+      <input id="search-input" type="search" maxlength="50" placeholder="搜索任务关键字（纯空格会被忽略）" aria-label="搜索任务关键字" />
+    </div>
+    <p id="stats" class="stats">当前视图 0 条 / 总计 0 条</p>
     <div class="filter-row">
       <button type="button" data-filter="all" class="active">全部</button>
       <button type="button" data-filter="active">未完成</button>
@@ -21,6 +25,7 @@
     </div>
     <ul id="todo-list"></ul>
     <p id="empty-state" class="empty-state">暂无待办事项</p>
+    <p class="drag-hint">提示：按住任意一条任务拖动即可调整顺序，顺序会自动保存。</p>
   </div>
   <script type="module" src="/src/main.ts"></script>
 </body>

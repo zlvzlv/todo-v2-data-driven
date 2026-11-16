@@ -1,0 +1,23 @@
+// AI 第一轮生成的拖拽排序逻辑（只给了功能要求，问题版本，仅存档）
+// 评审后已废弃，最终实现见 src/order.ts。
+type Todo = { id: number; text: string; completed: boolean };
+
+let todos: Todo[] = [];
+
+function onDrop(fromId: number, toId: number): void {
+  const from = todos.findIndex((todo) => todo.id === fromId);
+  const to = todos.findIndex((todo) => todo.id === toId);
+  // ❌ 问题 1：直接对 todos 原地 splice，违反不可变原则
+  const [moved] = todos.splice(from, 1);
+  todos.splice(to, 0, moved);
+  // ❌ 问题 2：没有校验 from/to 是否存在；from === to 时会插入到错误位置
+  // ❌ 问题 3：没有保存顺序（需求要求持久化）
+  render();
+}
+
+function bindDrag(): void {
+  // ❌ 问题 4：给每个 li 单独绑定，而不是事件委托
+  document.querySelectorAll('#todo-list li').forEach((li) => {
+    li.addEventListener('drop', () => onDrop(Number(li.dataset.id), 0));
+  });
+}

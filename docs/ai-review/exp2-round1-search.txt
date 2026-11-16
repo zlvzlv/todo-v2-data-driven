@@ -1,0 +1,24 @@
+// AI 第一轮生成的关键字搜索逻辑（只给了功能要求，问题版本，仅存档）
+// 评审后已废弃，最终实现见 src/search.ts。
+type Todo = { id: number; text: string; completed: boolean };
+
+let todos: Todo[] = [];
+let keyword = '';
+
+function render(): void {
+  // ❌ 问题 1：把过滤结果写回 todos，搜索一次后原始数据就丢了
+  if (keyword) {
+    todos = todos.filter((todo) => todo.text.includes(keyword));
+  }
+  const list = document.getElementById('todo-list');
+  if (list) {
+    list.innerHTML = todos.map((todo) => `<li>${todo.text}</li>`).join('');
+  }
+  // ❌ 问题 2：没有 trim，纯空格会让列表变空；统计口径也只在过滤后算
+  document.getElementById('stats')!.textContent = `当前视图 ${todos.length} 条`;
+}
+
+function onSearch(input: HTMLInputElement): void {
+  keyword = input.value;
+  render();
+}
