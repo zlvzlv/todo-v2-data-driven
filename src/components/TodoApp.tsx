@@ -13,6 +13,8 @@ import {
 import { STORAGE_VERSION, readSnapshot, writeSnapshot, type TodoSnapshot } from '../storage';
 import TodoForm from './TodoForm';
 import TodoList from './TodoList';
+import ThemeStatus from './ThemeStatus';
+import ThemeToggle from './ThemeToggle';
 
 const STORAGE_KEY = 'todo-app-v3';
 const LEGACY_STORAGE_KEY = 'todo-app-v2';
@@ -45,20 +47,15 @@ function persist(snapshot: TodoSnapshot): void {
   }
 }
 
-/** 优先读 v3；读不到就回退读 W9 的 v2 key，迁移成功后写回新 key */
-function loadStartupState(): StartupState {
+/** 惰性初始化用：只在组件首次渲染时读一次存储；读不到或坏数据就回空状态 */
+function loadInitialState(): StartupState {
   const raw = readStorage(STORAGE_KEY) ?? readStorage(LEGACY_STORAGE_KEY);
   const result = readSnapshot(raw);
   if (!result.ok) {
     return { todos: [], filter: 'all' };
   }
-  if (result.migratedFrom !== null) {
-    persist(result.snapshot);
-  }
   return { todos: result.snapshot.todos, filter: result.snapshot.filter };
 }
-
-const startup = loadStartupState();
 
 /**
  * 根组件：唯一持有业务 state 的地方。
@@ -66,8 +63,11 @@ const startup = loadStartupState();
  * 组件里不做任何直接的 DOM 操作，渲染完全由 state 驱动。
  */
 export default function TodoApp() {
-  const [todos, setTodos] = useState<readonly Todo[]>(startup.todos);
-  const [filter, setFilter] = useState<TodoFilter>(startup.filter);
+  // 惰性初始化：useState(() => ...) 只在首次渲染执行一次，读存储发生在渲染期，
+  // 不会像"在 Effect 里 setState"那样出现"先写空数组把已有数据覆盖掉"的时序问题。
+  const [initial] = useState<StartupState>(() => loadInitialState());
+  const [todos, setTodos] = useState<readonly Todo[]>(initial.todos);
+  const [filter, setFilter] = useState<TodoFilter>(initial.filter);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -124,7 +124,10 @@ export default function TodoApp() {
 
   return (
     <div className="todo-app">
-      <h1>Todo V4.0</h1>
+      <header className="app-header">
+        <h1>Todo V4.0</h1>
+        <ThemeToggle />
+      </header>
       <TodoForm message={message} onAdd={handleAdd} />
       <nav className="filter-row" aria-label="筛选">
         {FILTER_OPTIONS.map((option) => (
@@ -142,6 +145,7 @@ export default function TodoApp() {
       </nav>
       <p className="summary">
         共 {todos.length} 条，未完成 {todos.filter((todo) => !todo.completed).length} 条
+        <ThemeStatus />
       </p>
       <TodoList
         todos={visibleTodos}
